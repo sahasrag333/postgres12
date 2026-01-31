@@ -46,40 +46,32 @@ class BaseTransformer(ABC):
 
 class StandardTransformer(BaseTransformer):
     """
-    A concrete implementation for general data cleaning.
+    Aggregation-focused transformer for Postgres JSONB data.
     """
 
     def clean(self):
-        """
-        Uses Pandas for high-performance cleaning.
-        """
-        # Convert to DataFrame for easier manipulation
         df = pd.DataFrame(self.raw_data)
 
-        # 1. Remove complete duplicates
-        df.drop_duplicates(inplace=True)
+        # Normalize column names
+        df.columns = [c.lower().strip() for c in df.columns]
 
-        # 2. Standardize string columns (strip whitespace)
-        df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-
-        # 3. Fill NaN with empty strings or standard nulls
-        df = df.where(pd.notnull(df), None)
+        # Type casting
+        df["purchase_amount"] = df["purchase_amount"].astype(float)
+        df["purchase_date"] = pd.to_datetime(df["purchase_date"])
 
         self.transformed_data = df
 
     def format_schema(self):
-        """
-        Maps internal data to the JSONB structure expected by 'processed_records'.
-        """
-        records = self.transformed_data.to_dict(orient='records')
-        
-        final_output = []
-        for item in records:
-            # We wrap the data in a structure compatible with our SQL schema
-            final_output.append({
-                "reference_id": str(item.get('id', 'N/A')),
-                "data_payload": item,  # This goes into the JSONB column
-                "is_validated": False  # To be updated by the Validation Service
-            })
-        
-        return final_output
+        df = self.transformed_data
+
+        # Example transformation: total purchase per city
+        grouped = (
+            df.groupby("source", as_index=False)
+              .agg(
+                  total_purchase_amount=("purchase_amount", "sum"),
+                  avg_purchase_amount=("purchase_amount", "mean"),
+                  total_customers=("id", "count")
+              )
+        )
+
+        return grouped

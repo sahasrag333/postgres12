@@ -6,8 +6,8 @@ from capital_group.configs import config
 from sqlalchemy import create_engine
 import pandas as pd
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy import Text, Boolean
-
+from sqlalchemy import Text,text, Boolean
+import json
 # module-level logger
 logger = get_logger(__name__)
 
@@ -103,3 +103,18 @@ def dataframe_to_postgres(df: pd.DataFrame, table_name: str, if_exists: str = 'a
     except Exception as e:
         logger.error(f"Failed to write DataFrame to Postgres table {table_name}: {e}")
         raise
+
+def fetch_all_payloads(table_name: str):
+    engine = create_engine(config.SQLALCHEMY_DATABASE_URI, pool_pre_ping=True)
+
+    query = text(f"""
+        SELECT data_payload
+        FROM {table_name}
+        WHERE data_payload IS NOT NULL
+    """)
+
+    with engine.connect() as conn:
+        rows = conn.execute(query).fetchall()
+
+    # Convert JSONB → dict
+    return [dict(r.data_payload) for r in rows]
