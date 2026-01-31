@@ -52,7 +52,7 @@ class Config:
     # AWS / S3 Settings
     AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
     AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
-    S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+    S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "cap-group")
     S3_REGION = os.getenv("S3_REGION", "us-east-1")
 
     # Selenium / Scraping Settings
